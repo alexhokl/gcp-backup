@@ -208,9 +208,22 @@ func ExtractFilePaths(localPath string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		filePaths := make([]string, len(files))
-		for i, file := range files {
-			filePaths[i] = path.Join(localPath, file.Name())
+		filePaths := make([]string, 0)
+		for _, file := range files {
+			switch file.Type() {
+			case os.ModeSymlink:
+				continue
+			case os.ModeSocket:
+				continue
+			case os.ModeDir:
+				filesInDir, err := ExtractFilePaths(path.Join(localPath, file.Name()))
+				if err != nil {
+					return nil, err
+				}
+				filePaths = append(filePaths, filesInDir...)
+				continue
+			}
+			filePaths = append(filePaths, path.Join(localPath, file.Name()))
 		}
 		return filePaths, nil
 	} else if iohelper.IsFileExist(localPath) {
