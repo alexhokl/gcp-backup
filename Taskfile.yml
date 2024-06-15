@@ -1,0 +1,29 @@
+version: '3'
+
+tasks:
+
+  build:
+    desc: Build
+    cmd: go build -o /dev/null
+
+  install:
+    desc: Intsall
+    cmd: go install
+
+  test:
+    desc: Test
+    cmd: go test ./...
+
+  coverage:
+    desc: Test with coverage
+    cmd: go test --cover ./...
+
+  coverage-html:
+    desc: Test with coverage in HTML
+    cmd: go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out -o coverage.html
+
+  open-coverage-html:
+    desc: Test with coverage in HTML and open the HTML
+    cmds:
+    - task coverage-html
+    - open coverage.html
