@@ -1,17 +1,21 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/alexhokl/helper/cli"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:          "gcp-backup",
-	Short:        "Backup files of this machine to Google Cloud Storage",
-	SilenceUsage: true,
+	Use:               "gcp-backup",
+	Short:             "Backup files of this machine to Google Cloud Storage",
+	SilenceUsage:      true,
+	PersistentPreRunE: validateBucketConnection,
 }
 
 func Execute() {
@@ -26,4 +30,17 @@ func init() {
 
 func initConfig() {
 	cli.ConfigureViper(cfgFile, "gcp-backup", false, "")
+}
+
+func validateBucketConnection(cmd *cobra.Command, _ []string) error {
+	bucketName := viper.GetString("bucket")
+	if bucketName == "" {
+		return fmt.Errorf("bucket name has not been configured")
+	}
+	machineAlias := viper.GetString("machine_alias")
+	if machineAlias == "" {
+		return fmt.Errorf("machine alias has not been configured")
+	}
+
+	return nil
 }

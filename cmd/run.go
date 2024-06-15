@@ -35,8 +35,6 @@ func init() {
 }
 
 func runBackup(_ *cobra.Command, _ []string) error {
-	fmt.Println("Backup process started")
-
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -73,14 +71,14 @@ func runBackup(_ *cobra.Command, _ []string) error {
 			if err != nil {
 				return err
 			}
-			if err := CopyFileToBucket(ctx, client, bucketName, machineAlias, relativePath, localPath); err != nil {
-				return err
+			if !runBackupOpts.dryRun {
+				if err := CopyFileToBucket(ctx, client, bucketName, machineAlias, relativePath, localPath); err != nil {
+					return err
+				}
 			}
 			fmt.Printf("Copied file [%s] to bucket [gs://%s/%s/%s]\n", localPath, bucketName, machineAlias, relativePath)
 		}
 	}
-
-	fmt.Println("Backup process has been completed")
 
 	return nil
 }
