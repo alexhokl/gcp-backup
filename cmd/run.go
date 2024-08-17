@@ -75,7 +75,7 @@ func runBackup(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("unable to determine paths required backup: %w", err)
 	}
-	if len(ignoredPaths) > 0 {
+	if len(ignoredPaths) > 0 && runBackupOpts.dryRun {
 		for _, p := range ignoredPaths {
 			fmt.Printf("Ignored path [%s]\n", p)
 		}
@@ -91,7 +91,11 @@ func runBackup(_ *cobra.Command, _ []string) error {
 					return fmt.Errorf("unable to upload file [%s] to bucket [gs://%s/%s/%s]: %w", localPath, bucketName, machineAlias, relativePath, err)
 				}
 			}
-			fmt.Printf("Copied file [%s] to bucket [gs://%s/%s/%s]\n", localPath, bucketName, machineAlias, relativePath)
+			if runBackupOpts.dryRun {
+				fmt.Printf("File [%s] would be copied to bucket [gs://%s/%s/%s]\n", localPath, bucketName, machineAlias, relativePath)
+			} else {
+				fmt.Printf("Copied file [%s] to bucket [gs://%s/%s/%s]\n", localPath, bucketName, machineAlias, relativePath)
+			}
 		}
 	}
 
