@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 
 	"cloud.google.com/go/storage"
+	"github.com/alexhokl/helper/googleapi"
 	"github.com/alexhokl/helper/iohelper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"google.golang.org/api/option"
 )
 
 type runBackupOptions struct {
@@ -36,12 +38,25 @@ func init() {
 
 func runBackup(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
+	clientOptions := []option.ClientOption{}
+	pathToApplicationDefaultCredentials := viper.GetString("path_to_application_default_credentials")
+	if pathToApplicationDefaultCredentials != "" {
+		clientOptions = append(clientOptions, option.WithCredentialsFile(pathToApplicationDefaultCredentials))
+	}
+	client, err := storage.NewClient(ctx, clientOptions...)
 	if err != nil {
 		return fmt.Errorf("unable to create storage client: %w", err)
 	}
 	bucketName := viper.GetString("bucket")
 	machineAlias := viper.GetString("machine_alias")
+
+	canAccessBucket, err := googleapi.IsBucketAccessible(ctx, client, bucketName)
+	if err != nil {
+		return fmt.Errorf("unable to determine if bucket [gs://%s] is accessible: %w", bucketName, err)
+	}
+	if !canAccessBucket {
+		return fmt.Errorf("bucket [gs://%s] is not accessible; check if bucket exist or account has access to the bucket", bucketName)
+	}
 
 	paths := viper.GetStringSlice("paths")
 	homeDir, err := os.UserHomeDir()
@@ -123,14 +138,14 @@ func GetPathsRequiredBackup(ctx context.Context, storageClient *storage.Client, 
 }
 
 func IsBackupRequired(ctx context.Context, storageClient *storage.Client, bucketName string, objectPath string, localChecksum uint32) (bool, error) {
-	exist, err := IsObjectExist(ctx, storageClient, bucketName, objectPath)
+	exist, err := googleapi.IsBucketObjectExist(ctx, storageClient, bucketName, objectPath)
 	if err != nil {
 		return false, fmt.Errorf("unable to determine if object [%s] exists in bucket [gs://%s]: %w", objectPath, bucketName, err)
 	}
 	if !exist {
 		return true, nil
 	}
-	remoteChecksum, err := GetObjectChecksum(ctx, storageClient, bucketName, objectPath)
+	remoteChecksum, err := googleapi.GetBucketObjectChecksum(ctx, storageClient, bucketName, objectPath)
 	if err != nil {
 		return false, fmt.Errorf("unable to retrieve checksum of object [%s] in bucket [gs://%s]: %w", objectPath, bucketName, err)
 	}
@@ -152,25 +167,6 @@ func GetChecksums(localPaths []string) (map[string]uint32, error) {
 		return nil, errors.Join(errs...)
 	}
 	return checksums, nil
-}
-
-func IsObjectExist(ctx context.Context, storageClient *storage.Client, bucketName string, objectPath string) (bool, error) {
-	_, err := storageClient.Bucket(bucketName).Object(objectPath).Attrs(ctx)
-	if err != nil {
-		if err == storage.ErrObjectNotExist {
-			return false, nil
-		}
-		return false, fmt.Errorf("unable to retrieve attributes of object [%s] in bucket [gs://%s]: %w", objectPath, bucketName, err)
-	}
-	return true, nil
-}
-
-func GetObjectChecksum(ctx context.Context, storageClient *storage.Client, bucketName string, objectPath string) (uint32, error) {
-	attrs, err := storageClient.Bucket(bucketName).Object(objectPath).Attrs(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("unable to retrieve attributes of object [%s] in bucket [gs://%s]: %w", objectPath, bucketName, err)
-	}
-	return attrs.CRC32C, nil
 }
 
 func GetRelativePaths(parentPath string, localPaths []string) ([]string, error) {

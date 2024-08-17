@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alexhokl/helper/cli"
+	"github.com/alexhokl/helper/iohelper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,6 +41,12 @@ func validateBucketConnection(cmd *cobra.Command, _ []string) error {
 	machineAlias := viper.GetString("machine_alias")
 	if machineAlias == "" {
 		return fmt.Errorf("machine alias has not been configured")
+	}
+	pathToApplicationDefaultCredentials := viper.GetString("path_to_application_default_credentials")
+	if pathToApplicationDefaultCredentials != "" {
+		if !iohelper.IsFileExist(pathToApplicationDefaultCredentials) {
+			return fmt.Errorf("path [%s] application default credentials does not exist", pathToApplicationDefaultCredentials)
+		}
 	}
 
 	return nil

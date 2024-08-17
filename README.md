@@ -13,6 +13,7 @@ The following is an example.
 ```yaml
 bucket: machine-backup
 machine_alias: machines/mac14
+path_to_application_default_credentials: /Users/someone/.config/gcloud/legacy_credentials/someone@test.com/adc.json
 paths:
   - .config/asciinema/
   - .config/atuin/
