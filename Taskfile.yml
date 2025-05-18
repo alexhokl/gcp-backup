@@ -1,7 +1,9 @@
-version: '3'
+version: "3"
+
+env:
+  APP_NAME: gcp-backup
 
 tasks:
-
   build:
     desc: Build
     cmd: go build -o /dev/null
@@ -25,5 +27,13 @@ tasks:
   open-coverage-html:
     desc: Test with coverage in HTML and open the HTML
     cmds:
-    - task coverage-html
-    - open coverage.html
+      - task coverage-html
+      - open coverage.html
+
+  completion-mac:
+    desc: Generate bash completion and save to homebrew
+    cmd: $APP_NAME completion bash > /opt/homebrew/etc/bash_completion.d/$APP_NAME
+
+  completion-linux:
+    desc: Generate bash completion and save configuration directory
+    cmd: $APP_NAME completion bash | sudo tee /etc/bash_completion.d/$APP_NAME
